@@ -4,6 +4,8 @@ Tapsilat Kotlin is a Kotlin client library for accessing the Tapsilat API.
 
 This SDK is implemented to match the feature set in the Go SDK (`tapsilat-go`) and includes support for order operations, terms, organization currencies, submerchant/suborganization APIs, VPOS management, VPOS-submerchant mappings, and subscription APIs.
 
+[![Build & Publish](https://github.com/tapsilat/tapsilat-kotlin/actions/workflows/publish.yml/badge.svg)](https://github.com/tapsilat/tapsilat-kotlin/actions/workflows/publish.yml)
+
 ## Project Layout
 
 This repository uses a single-module layout so feature domains can share one API client and common infrastructure:
@@ -43,6 +45,7 @@ dependencies {
 ```
 
 Use a Git tag for the version (`v1.0.0`, `v1.1.0`, etc.). JitPack builds directly from GitHub tags.
+
 
 ## Configuration
 

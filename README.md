@@ -6,6 +6,8 @@ This SDK is implemented to match the feature set in the Go SDK (`tapsilat-go`) a
 
 [![Build & Publish](https://github.com/tapsilat/tapsilat-kotlin/actions/workflows/publish.yml/badge.svg)](https://github.com/tapsilat/tapsilat-kotlin/actions/workflows/publish.yml)
 
+[![](https://jitpack.io/v/tapsilat/tapsilat-kotlin.svg)](https://jitpack.io/#tapsilat/tapsilat-kotlin)
+
 ## Project Layout
 
 This repository uses a single-module layout so feature domains can share one API client and common infrastructure:
@@ -40,7 +42,7 @@ repositories {
 
 ```kotlin
 dependencies {
-    implementation("com.github.tapsilat:tapsilat-kotlin:v1.0.0")
+    implementation("com.github.tapsilat:tapsilat-kotlin:latest.release")
 }
 ```
 

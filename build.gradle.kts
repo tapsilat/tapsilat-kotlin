@@ -53,9 +53,9 @@ dependencies {
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
-    kotlinOptions {
-        jvmTarget = "11"
-        freeCompilerArgs = freeCompilerArgs + listOf("-Xjsr305=strict")
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        freeCompilerArgs.addAll("-Xjsr305=strict")
     }
 }
 

@@ -60,7 +60,7 @@ internal class SharedApiClient(
     ): T {
         val req = buildRequest(path, method, payload, query)
         http.newCall(req).execute().use { response ->
-            val body = response.body?.string().orEmpty()
+            val body = response.body.string()
             val parsed = runCatching { mapper.readTree(body) }.getOrNull()
             if (!response.isSuccessful) {
                 throw ApiError.from(response.code, response.message, body, parsed)

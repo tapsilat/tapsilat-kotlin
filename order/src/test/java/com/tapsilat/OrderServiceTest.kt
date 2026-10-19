@@ -130,13 +130,14 @@ class OrderServiceTest {
     }
 
     @Test
-    fun `refundAllOrder delegates to refundOrder without amount`() {
+    fun `refundAllOrder posts to refund-all with the reference`() {
         server.enqueue(MockResponse().setBody("""{"status":"success","is_success":true}""").setResponseCode(200))
 
         service.refundAllOrder("ref-001")
 
         val req = server.takeRequest()
-        assertEquals("/order/refund", req.path)
+        assertEquals("/order/refund-all", req.path)
+        assertEquals("""{"reference_id":"ref-001"}""", req.body.readUtf8())
     }
 
     @Test

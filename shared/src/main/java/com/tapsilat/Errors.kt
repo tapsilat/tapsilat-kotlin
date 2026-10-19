@@ -8,6 +8,8 @@ class ApiError(
     val code: String?,
     val messageText: String?,
     val rawBody: String,
+    /** Per-field validation messages, when the server returns an `errors` object. */
+    val errors: Map<String, String> = emptyMap(),
 ) : RuntimeException(buildMessage(statusCode, status, code, messageText, rawBody)) {
     companion object {
         fun from(statusCode: Int, status: String, body: String, parsed: JsonNode?): ApiError {
@@ -15,8 +17,22 @@ class ApiError(
             val message = parsed?.get("message")?.takeUnless { it.isNull }?.asText()
                 ?: parsed?.get("error")?.takeUnless { it.isNull }?.asText()
             val parsedStatus = parsed?.get("status")?.takeUnless { it.isNull }?.asText() ?: status
-            return ApiError(statusCode, parsedStatus, code, message, body)
+            val errors = parsed?.get("errors")
+                ?.takeIf { it.isObject }
+                ?.properties()
+                ?.associate { (field, value) -> field to value.asText() }
+                .orEmpty()
+            return ApiError(statusCode, parsedStatus, code, message, body, errors)
         }
+
+        internal fun unexpectedResponse(statusCode: Int, status: String, contentType: String, body: String): ApiError =
+            ApiError(
+                statusCode,
+                status,
+                null,
+                "unexpected non-JSON response (Content-Type \"$contentType\"); check that the endpoint URL and route are correct",
+                body,
+            )
 
         private fun buildMessage(
             statusCode: Int,

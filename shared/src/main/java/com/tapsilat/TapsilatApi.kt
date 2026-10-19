@@ -10,13 +10,17 @@ class TapsilatApi private constructor(
     private val client = SharedApiClient(endpoint, token, timeout)
 
     val organization = OrganizationService(client)
-    private val currencyResolver = CurrencyReferenceResolver(organization)
+    private val currencyResolver = CurrencyReferenceResolver(organization).also { resolver ->
+        organization.onCurrenciesChanged = resolver::invalidateCache
+    }
     val order = OrderService(client)
-    val submerchant = SubmerchantService(client, currencyResolver)
-    val vpos = VposService(client, currencyResolver)
+    val submerchant = SubmerchantService(client)
+    val vpos = VposService(client)
     val subscription = SubscriptionService(client)
     val checkout = CheckoutService(client)
     val credit = CreditService(client)
+    val tokenization = TokenizationService(client)
+    val marketplace = MarketplaceService(client, currencyResolver)
 
     companion object {
         @JvmOverloads
@@ -55,9 +59,13 @@ class TapsilatApi private constructor(
         endDate: String? = null,
         organizationId: String? = null,
         relatedReferenceId: String? = null,
-    ): PaginatedData = order.getOrderList(page, perPage, buyerId, startDate, endDate, organizationId, relatedReferenceId)
+        conversationId: String? = null,
+        status: Int? = null,
+    ): PaginatedData = order.getOrderList(
+        page, perPage, buyerId, startDate, endDate, organizationId, relatedReferenceId, conversationId, status,
+    )
 
-    fun getOrderSubmerchants(page: Int, perPage: Int): PaginatedData = order.getOrderSubmerchants(page, perPage)
+    fun getOrderSubmerchants(page: Int, perPage: Int): OrderSubmerchantListResponse = order.getOrderSubmerchants(page, perPage)
 
     fun getCheckoutUrl(referenceId: String): String? = order.getCheckoutUrl(referenceId)
 
@@ -66,7 +74,26 @@ class TapsilatApi private constructor(
     fun getOrderPaymentDetails(referenceId: String? = null, conversationId: String? = null): Map<String, Any?> =
         order.getOrderPaymentDetails(referenceId, conversationId)
 
-    fun getOrderTransactions(referenceId: String): Map<String, Any?> = order.getOrderTransactions(referenceId)
+    fun getOrderTransactions(referenceId: String): List<Map<String, Any?>> = order.getOrderTransactions(referenceId)
+
+    fun getOrderPayments(payload: GetOrderPaymentsRequest): GetOrderPaymentsResponse = order.getOrderPayments(payload)
+
+    fun chargeOrder(request: OrderChargeRequest): OrderChargeResponse = checkout.chargeOrder(request)
+
+    @Deprecated("Use marketplace.approveMarketplacePayouts with explicit payout IDs")
+    @Suppress("DEPRECATION")
+    fun approveSubmerchantPayment(payload: SubmerchantPaymentAction): SubmerchantPaymentActionResponse =
+        order.approveSubmerchantPayment(payload)
+
+    fun disapproveSubmerchantPayment(payload: SubmerchantPaymentAction): SubmerchantPaymentActionResponse =
+        order.disapproveSubmerchantPayment(payload)
+
+    fun updateSubmerchantPaymentItem(payload: SubmerchantPaymentItemUpdate): SubmerchantPaymentItemUpdateResponse =
+        order.updateSubmerchantPaymentItem(payload)
+
+    fun getCardInstallments(request: CardInstallmentsRequest): CardInstallmentsResponse = checkout.getCardInstallments(request)
+
+    fun getInstallmentTable(request: InstallmentTableRequest): InstallmentTableResponse = checkout.getInstallmentTable(request)
 
     fun cancelOrder(payload: CancelOrder): RefundCancelOrderResponse = order.cancelOrder(payload)
 
@@ -102,11 +129,14 @@ class TapsilatApi private constructor(
     fun listOrganizationCurrencyPresets(): OrganizationCurrencyPresetsResponse =
         organization.listOrganizationCurrencyPresets()
 
-    fun createOrganizationCurrency(currencyCode: String): CreateOrganizationCurrencyResponse {
-        val response = organization.createOrganizationCurrency(currencyCode)
-        currencyResolver.invalidateCache()
-        return response
-    }
+    fun createOrganizationCurrency(currencyCode: String): CreateOrganizationCurrencyResponse =
+        organization.createOrganizationCurrency(currencyCode)
+
+    fun createOrganizationUser(payload: OrgCreateUserRequest): OrgCreateUserResponse =
+        organization.createOrganizationUser(payload)
+
+    fun createOrganizationUserToken(payload: OrgUserTokenCreateRequest): OrgUserTokenCreateResponse =
+        organization.createOrganizationUserToken(payload)
 
     fun resolveCurrencyId(ref: String): String = currencyResolver.resolveCurrencyId(ref)
 
@@ -127,6 +157,8 @@ class TapsilatApi private constructor(
     fun getSuborganizations(page: Int, perPage: Int): SuborganizationListResponse =
         submerchant.getSuborganizations(page, perPage)
 
+    @Deprecated("Use getSuborganizationDetail", ReplaceWith("getSuborganizationDetail(id)"))
+    @Suppress("DEPRECATION")
     fun getSuborganization(id: String): SuborganizationListItem = submerchant.getSuborganization(id)
 
     fun getSuborganizationDetail(id: String): SuborganizationDetail = submerchant.getSuborganizationDetail(id)
@@ -136,6 +168,12 @@ class TapsilatApi private constructor(
 
     fun getSubmerchantBySuborganization(suborganizationId: String): SuborganizationSubmerchantMapping =
         submerchant.getSubmerchantBySuborganization(suborganizationId)
+
+    fun recordSubmerchantPayoutEvent(payload: SubmerchantPayoutEventRequest): SubmerchantPayoutEventResponse =
+        submerchant.recordSubmerchantPayoutEvent(payload)
+
+    fun createMarketplaceSubmerchant(payload: MarketplaceSubmerchantCreateRequest): MarketplaceSubmerchantCreateResponse =
+        submerchant.createMarketplaceSubmerchant(payload)
 
     // ── VPOS ─────────────────────────────────────────────────────────────────
 
@@ -188,5 +226,13 @@ class TapsilatApi private constructor(
 
     fun redirectSubscription(payload: SubscriptionRedirectRequest): SubscriptionRedirectResponse =
         subscription.redirectSubscription(payload)
+
+    // ── Tokenization ──────────────────────────────────────────────────────────
+
+    fun tokenizeCard(payload: CardTokenizeRequest): CardTokenizeResponse = tokenization.tokenizeCard(payload)
+
+    fun listSavedCards(page: Int, perPage: Int): ListSavedCardsResponse = tokenization.listSavedCards(page, perPage)
+
+    fun deleteSavedCard(id: String): DeleteSavedCardResponse = tokenization.deleteSavedCard(id)
 }
 

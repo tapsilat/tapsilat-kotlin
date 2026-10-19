@@ -2,6 +2,10 @@ package com.tapsilat
 
 import java.util.Locale
 
+/**
+ * Resolves organization currency units such as "TRY" to currency UUIDs. Most endpoints accept
+ * units directly; this is used where the server requires a UUID, such as marketplace approval policies.
+ */
 internal class CurrencyReferenceResolver(
     private val organizationService: OrganizationService,
 ) {
@@ -19,7 +23,7 @@ internal class CurrencyReferenceResolver(
         }
 
         val currencyByUnit = getOrganizationCurrencyIdsByUnit()
-        return currencyByUnit[trimmedRef.uppercase(Locale.getDefault())]
+        return currencyByUnit[trimmedRef.uppercase(Locale.ROOT)]
             ?: throw ValidationError(
                 message = "unknown currency reference \"$ref\"; use a currency UUID or organization currency unit",
             )
@@ -52,7 +56,7 @@ internal class CurrencyReferenceResolver(
         val response = organizationService.getOrganizationCurrencies()
         val resolved = response.currencies
             .mapNotNull {
-                val unit = it.currencyUnit?.trim()?.uppercase(Locale.getDefault())
+                val unit = it.currencyUnit?.trim()?.uppercase(Locale.ROOT)
                 val id = it.id?.trim()
                 if (unit.isNullOrBlank() || id.isNullOrBlank()) null else unit to id
             }
@@ -64,6 +68,6 @@ internal class CurrencyReferenceResolver(
     }
 
     private companion object {
-        val UUID_REGEX = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$")
+        val UUID_REGEX = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
     }
 }

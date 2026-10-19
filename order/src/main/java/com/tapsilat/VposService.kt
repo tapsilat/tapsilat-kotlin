@@ -1,8 +1,11 @@
 package com.tapsilat
 
+/**
+ * VPOS configurations, VPOS submerchants and acquirer lookups. Updates replace the stored
+ * configuration: read the record first and send every field back.
+ */
 class VposService internal constructor(
     private val client: SharedApiClient,
-    private val currencyResolver: CurrencyReferenceResolver,
 ) {
     fun listVpos(page: Int, perPage: Int): VposListResponse = listVposWithFilter(page, perPage, VposListFilter())
 
@@ -12,19 +15,17 @@ class VposService internal constructor(
         return client.get("/vpos", VposListResponse::class.java, query)
     }
 
-    fun createVpos(payload: VposCreateRequest): VposMutationResponse {
-        val normalizedCurrencies = currencyResolver.resolveCurrencyIds(payload.currencies)
-        return client.post("/vpos", payload.copy(currencies = normalizedCurrencies), VposMutationResponse::class.java)
-    }
+    /** Creates a VPOS; currencies accept currency UUIDs or units such as "TRY". */
+    fun createVpos(payload: VposCreateRequest): VposMutationResponse =
+        client.post("/vpos", payload, VposMutationResponse::class.java)
 
-    fun getVpos(id: String): Vpos = client.get("/vpos/$id", Vpos::class.java)
+    fun getVpos(id: String): Vpos = client.get("/vpos/${SharedApiClient.pathId(id, "id")}", Vpos::class.java)
 
-    fun updateVpos(id: String, payload: VposUpdateRequest): VposMutationResponse {
-        val normalizedCurrencies = currencyResolver.resolveCurrencyIds(payload.currencies)
-        return client.patch("/vpos/$id", payload.copy(currencies = normalizedCurrencies), VposMutationResponse::class.java)
-    }
+    /** Replaces a VPOS configuration; fields left out are stored as empty or false. */
+    fun updateVpos(id: String, payload: VposUpdateRequest): VposMutationResponse =
+        client.patch("/vpos/${SharedApiClient.pathId(id, "id")}", payload, VposMutationResponse::class.java)
 
-    fun deleteVpos(id: String): VposMutationResponse = client.delete("/vpos/$id", VposMutationResponse::class.java)
+    fun deleteVpos(id: String): VposMutationResponse = client.delete("/vpos/${SharedApiClient.pathId(id, "id")}", VposMutationResponse::class.java)
 
     fun listVposAcquirers(): VposAcquirerListResponse = client.get("/vpos/acquirers", VposAcquirerListResponse::class.java)
 
@@ -48,11 +49,11 @@ class VposService internal constructor(
     fun createVposSubmerchant(payload: VposSubmerchantCreateRequest): VposSubmerchantMutationResponse =
         client.post("/vpos-submerchant", payload, VposSubmerchantMutationResponse::class.java)
 
-    fun getVposSubmerchant(id: String): VposSubmerchant = client.get("/vpos-submerchant/$id", VposSubmerchant::class.java)
+    fun getVposSubmerchant(id: String): VposSubmerchant = client.get("/vpos-submerchant/${SharedApiClient.pathId(id, "id")}", VposSubmerchant::class.java)
 
     fun updateVposSubmerchant(id: String, payload: VposSubmerchantUpdateRequest): VposSubmerchantMutationResponse =
-        client.patch("/vpos-submerchant/$id", payload, VposSubmerchantMutationResponse::class.java)
+        client.patch("/vpos-submerchant/${SharedApiClient.pathId(id, "id")}", payload, VposSubmerchantMutationResponse::class.java)
 
     fun deleteVposSubmerchant(id: String): VposSubmerchantMutationResponse =
-        client.delete("/vpos-submerchant/$id", VposSubmerchantMutationResponse::class.java)
+        client.delete("/vpos-submerchant/${SharedApiClient.pathId(id, "id")}", VposSubmerchantMutationResponse::class.java)
 }

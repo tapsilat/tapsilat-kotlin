@@ -147,23 +147,40 @@ fun main() {
 }
 ```
 
-### Submerchant + VPOS Currency Normalization
+### Currency References
 
-`createSubmerchant`, `updateSubmerchant`, `createVpos`, and `updateVpos` accept currency references in either format:
+Currency fields on submerchants, marketplace sellers, seller contracts and VPOS accept a currency UUID or an organization currency unit (`TRY`, `USD`, ...); the server resolves units, so the SDK sends them unchanged. Marketplace approval policies are the exception: their `currencyId` must be a UUID, so `marketplace.createMarketplaceApprovalPolicy` and `updateMarketplaceApprovalPolicy` resolve a unit first. `resolveCurrencyId` exposes the same cached lookup.
 
-- currency UUID
-- organization currency unit (`TRY`, `USD`, `EUR`, etc.)
+### Replacing Updates
 
-The SDK resolves units to IDs by calling organization currency endpoints and caches currency mappings internally.
+`updateVpos`, `updateSubmerchant`, `updateOrderTerm` and `marketplace.updateMarketplaceSubmerchant` replace the stored record. Read it first and send every field back; for example, leaving out `failover` or `tls` on a VPOS stores `false`.
+
+### Card Installments and Charging
+
+```kotlin
+val options = api.getCardInstallments(CardInstallmentsRequest(bin = "54066200", amount = 100.0, currency = "TRY"))
+val table = api.getInstallmentTable(InstallmentTableRequest(amount = 100.0, currency = "TRY"))
+
+val charge = api.chargeOrder(OrderChargeRequest(orderReferenceId = "order-reference-id"))
+if (charge.isSuccess != true) {
+    println("charge failed: ${charge.errorCode} ${charge.message}")
+}
+```
+
+### Marketplace
+
+`api.marketplace` uses the API version 2 routes derived from your endpoint. Revisions are opaque strings: pass them back exactly as received.
+
+```kotlin
+val payout = api.marketplace.getMarketplacePayout(payoutId)
+if (payout.eligibilityStatus == "eligible" && payout.releaseStatus == "awaiting_approval") {
+    api.marketplace.approveMarketplacePayouts(MarketplacePayoutApproval(ids = listOf(payoutId)))
+}
+```
 
 ### Placeholder Methods
 
-For modules planned later, placeholder methods are included now:
-
-- `CheckoutService.createCheckoutSessionPlaceholder()`
-- `CreditService.createCreditApplicationPlaceholder()`
-
-They currently throw `UnsupportedOperationException` until feature implementation is added.
+`CreditService.createCreditApplicationPlaceholder()` is a placeholder for a module planned later and throws `UnsupportedOperationException`.
 
 ## Implemented API Surface
 
@@ -179,11 +196,21 @@ They currently throw `UnsupportedOperationException` until feature implementatio
 - `getOrderStatus`
 - `getOrderPaymentDetails`
 - `getOrderTransactions`
+- `getOrderPayments`
 - `cancelOrder`
 - `refundOrder`
 - `refundAllOrder`
+- `chargeOrder`
+- `approveSubmerchantPayment` (deprecated), `disapproveSubmerchantPayment`, `updateSubmerchantPaymentItem`
+
+### Card Installments
+
+- `getCardInstallments`
+- `getInstallmentTable`
 
 ### Order Terms
+
+`createOrderTerm` and `deleteOrderTerm` take the order's ID (not its reference ID); term dates use `YYYY-MM-DD`. `refundOrderTerm` needs the order's reference ID and the term's ID.
 
 - `getOrderTerm`
 - `createOrderTerm`
@@ -200,6 +227,8 @@ They currently throw `UnsupportedOperationException` until feature implementatio
 - `getOrganizationCurrencies`
 - `listOrganizationCurrencyPresets`
 - `createOrganizationCurrency`
+- `createOrganizationUser`
+- `createOrganizationUserToken`
 - `resolveCurrencyId`
 
 ### Submerchant and Suborganization
@@ -214,6 +243,8 @@ They currently throw `UnsupportedOperationException` until feature implementatio
 - `getSuborganizationDetail`
 - `getSuborganizationBySubmerchant`
 - `getSubmerchantBySuborganization`
+- `recordSubmerchantPayoutEvent`
+- `createMarketplaceSubmerchant`
 
 ### VPOS
 
@@ -243,11 +274,24 @@ They currently throw `UnsupportedOperationException` until feature implementatio
 - `listSubscriptions`
 - `redirectSubscription`
 
+### Tokenization
+
+- `tokenizeCard`
+- `listSavedCards`
+- `deleteSavedCard`
+
+### Marketplace (`api.marketplace`)
+
+- Sellers: `listMarketplaceSubmerchants`, `getMarketplaceSubmerchant`, `updateMarketplaceSubmerchant`, `getMarketplaceSellerContracts`, `getMarketplaceSellerAccounts`, `runMarketplaceSellerAccountAction`
+- Payouts: `listMarketplacePayouts`, `getMarketplacePayout`, `approveMarketplacePayouts`
+- Policies: `list`/`get`/`create`/`update`/`delete` for `MarketplaceApprovalPolicy` and `MarketplaceReleasePolicy`, `getMarketplaceApprovalSettings`, `updateMarketplaceApprovalSettings`
+- Payout operations: `runMarketplacePayoutOperation`, `getMarketplacePayoutOperation`, `reconcileMarketplacePayoutOperation`, `retryMarketplacePayoutOperation`
+
 ## Error Handling
 
 The SDK throws:
 
-- `ApiError` for non-2xx API responses
+- `ApiError` for non-2xx API responses, carrying `statusCode`, the body `status`, `code`, `messageText`, per-field `errors` and the `rawBody`. Most "not found" errors arrive as HTTP 400 and rejected state changes as HTTP 424. A successful status with an HTML body, which a deployment serving the panel UI returns for unknown routes, also throws `ApiError`.
 - `ValidationError` for local validation failures (phone, installments, currency references)
 
 Example:

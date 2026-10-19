@@ -1,6 +1,7 @@
 package com.tapsilat
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -9,6 +10,7 @@ data class OrderMetadata(
     val value: String? = null,
 )
 
+/** Payment term sent with order creation; [dueDate] and [paidDate] must be RFC3339 timestamps. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OrderPaymentTerm(
     val amount: Double? = null,
@@ -43,6 +45,49 @@ data class Order(
     val paymentOptions: List<String> = emptyList(),
     val metadata: List<OrderMetadata> = emptyList(),
     val paymentTerms: List<OrderPaymentTerm> = emptyList(),
+    val redirectSuccessUrl: String? = null,
+    val redirectFailureUrl: String? = null,
+    val paidAmount: Double? = null,
+    val externalReferenceId: String? = null,
+    val partialPayment: Boolean? = null,
+    /** "auth" (default) or "preauth". */
+    val paymentMode: String? = null,
+    val consents: List<OrderConsent> = emptyList(),
+    val orderCards: List<OrderCard> = emptyList(),
+    val subOrganization: OrderSubOrganization? = null,
+    val orderVposId: String? = null,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class OrderConsent(
+    val title: String? = null,
+    val url: String? = null,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class OrderCard(
+    val cardId: String? = null,
+    val cardSequence: Long? = null,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class OrderSubOrganization(
+    val organizationName: String? = null,
+    val email: String? = null,
+    val iban: String? = null,
+    val address: String? = null,
+    val currency: String? = null,
+    val acquirer: String? = null,
+    val taxOffice: String? = null,
+    val taxNumber: String? = null,
+    val gsmNumber: String? = null,
+    val contactFirstName: String? = null,
+    val contactLastName: String? = null,
+    val identityNumber: String? = null,
+    val legalCompanyTitle: String? = null,
+    val subMerchantKey: String? = null,
+    val subMerchantType: String? = null,
+    val subMerchantExternalId: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -59,6 +104,8 @@ data class OrderPfSubMerchant(
     val terminalNo: String? = null,
     val submerchantNin: String? = null,
     val submerchantUrl: String? = null,
+    val switchId: String? = null,
+    val nationalId: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -79,12 +126,76 @@ data class OrderDetail(
     val shippingAddress: OrderShippingAddress = OrderShippingAddress(),
     val billingAddress: OrderBillingAddress = OrderBillingAddress(),
     val basketItems: List<OrderBasketItem> = emptyList(),
+    @Deprecated("The order detail endpoint does not return submerchants")
     val submerchants: List<OrderSubmerchant> = emptyList(),
     val paymentFailureUrl: String? = null,
     val paymentSuccessUrl: String? = null,
     val checkoutUrl: String? = null,
     val conversationId: String? = null,
     val paymentOptions: List<String> = emptyList(),
+    val externalReferenceId: String? = null,
+    val redirectSuccessUrl: String? = null,
+    val redirectFailureUrl: String? = null,
+    val checkoutDesign: OrderCheckoutDesign = OrderCheckoutDesign(),
+    val paymentTerms: List<OrderPaymentTermDetail> = emptyList(),
+    val metadata: List<OrderMetadata> = emptyList(),
+    val paymentRequests: List<OrderPaymentRequest> = emptyList(),
+    val refundCancelRequests: List<OrderRefundCancelRequest> = emptyList(),
+    val customerPaidAmount: Double? = null,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class OrderPaymentTermDetail(
+    val id: String? = null,
+    val hashId: String? = null,
+    val termSequence: Long? = null,
+    val required: Boolean? = null,
+    val dueDate: String? = null,
+    val paidDate: String? = null,
+    val amount: Double? = null,
+    val termReferenceId: String? = null,
+    val status: String? = null,
+    val payments: List<OrderItemPayment> = emptyList(),
+    val data: String? = null,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class OrderItemPayment(
+    val id: String? = null,
+    val amount: Double? = null,
+    val paidDate: String? = null,
+    val maskedBin: String? = null,
+    val cardBrand: String? = null,
+    val refundedAmount: Double? = null,
+    val refundableAmount: Double? = null,
+    val refundedDate: String? = null,
+    val refunded: Boolean? = null,
+    val status: Long? = null,
+    val type: String? = null,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class OrderPaymentRequest(
+    val id: String? = null,
+    val date: String? = null,
+    val paymentMode: String? = null,
+    val amount: String? = null,
+    val cardHash: String? = null,
+    val maskedCard: String? = null,
+    val paid: Boolean? = null,
+    val type: String? = null,
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class OrderRefundCancelRequest(
+    val id: String? = null,
+    val amount: String? = null,
+    val status: Long? = null,
+    val reason: String? = null,
+    val type: Long? = null,
+    val termId: String? = null,
+    val itemId: String? = null,
+    val createdAt: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -102,8 +213,13 @@ data class OrderBuyer(
     val country: String? = null,
     val zipCode: String? = null,
     val ip: String? = null,
+    /** Birth date (YYYY-MM-DD); the property keeps its historical spelling and is sent as birth_date. */
+    @param:JsonProperty("birth_date") @get:JsonProperty("birth_date")
     val birdthDate: String? = null,
     val title: String? = null,
+    val incomeType: String? = null,
+    val education: String? = null,
+    val occupation: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -131,6 +247,10 @@ data class OrderBillingAddress(
     val contactName: String? = null,
     val contactPhone: String? = null,
     val vatNumber: String? = null,
+    val neighbourhood: String? = null,
+    val street1: String? = null,
+    val street2: String? = null,
+    val street3: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -141,6 +261,11 @@ data class OrderBasketItemPayer(
     val title: String? = null,
     val type: String? = null,
     val vat: String? = null,
+    val name: String? = null,
+    val surname: String? = null,
+    val identityNumber: String? = null,
+    val email: String? = null,
+    val phone: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -166,6 +291,11 @@ data class OrderBasketItem(
     val subMerchantKey: String? = null,
     val subMerchantPrice: String? = null,
     val payer: OrderBasketItemPayer? = null,
+    /** Merchant category code. */
+    val mcc: String? = null,
+    /** RFC3339 timestamp before which the item's marketplace payout is not released. */
+    val payoutReleaseAt: String? = null,
+    val itemPayments: List<OrderItemPayment> = emptyList(),
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -185,7 +315,18 @@ data class OrderCheckoutDesign(
     val leftBackgroundColor: String? = null,
     val rightBackgroundColor: String? = null,
     val textColor: String? = null,
+    val payButtonTextColor: String? = null,
+    val pageBackgroundColor: String? = null,
+    val borderColor: String? = null,
+    val inputBorderColor: String? = null,
+    val accentColor: String? = null,
+    val textMutedColor: String? = null,
+    val surfaceMutedColor: String? = null,
+    val darkModeEnabled: Boolean? = null,
+    val darkColors: Map<String, String>? = null,
+    @Deprecated("Checkout no longer renders custom order detail HTML; the value is ignored")
     val orderDetailHtml: String? = null,
+    @Deprecated("Ignored by checkout; use Order.redirectSuccessUrl and Order.redirectFailureUrl")
     val redirectUrl: String? = null,
 )
 
@@ -208,6 +349,10 @@ data class RefundOrder(
     val referenceId: String,
     val amount: Double? = null,
     val error: String? = null,
+    /** Optionally limits the refund to one basket item. */
+    val orderItemId: String? = null,
+    /** Optionally limits the refund to one item payment. */
+    val orderItemPaymentId: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -234,29 +379,45 @@ data class PaginatedData(
     val error: String? = null,
 )
 
+/**
+ * Adds a payment term to an existing order. [orderId] is the order's ID (OrderResponse.orderId),
+ * not its reference ID. Dates use YYYY-MM-DD.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OrderPaymentTermCreateDTO(
-    val orderReferenceId: String,
+    val orderId: String,
     val amount: Double,
     val dueDate: String,
     val required: Boolean,
-    val data: String? = null,
     val termSequence: Int? = null,
+    val paidDate: String? = null,
+    val termReferenceId: String? = null,
+    val status: String? = null,
+    val data: String? = null,
 )
 
+/**
+ * Replaces a payment term: the server stores every field as sent, so populate all of them.
+ * Dates use YYYY-MM-DD.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OrderPaymentTermUpdateDTO(
     val termReferenceId: String,
+    val termSequence: Int? = null,
+    val required: Boolean? = null,
     val amount: Double? = null,
     val dueDate: String? = null,
-    val required: Boolean? = null,
-    val data: String? = null,
+    val paidDate: String? = null,
+    val status: String? = null,
 )
 
+/** Refunds a payment term; [referenceId] is the order's reference ID and [termId] the term's ID. */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OrderTermRefundRequest(
-    val termReferenceId: String,
-    val amount: Double? = null,
+    val referenceId: String,
+    val termId: String,
+    val amount: Double,
+    val termPaymentId: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -269,6 +430,9 @@ data class OrganizationSettings(
     val domainAddress: String? = null,
     val checkoutDomain: String? = null,
     val subscriptionDomain: String? = null,
+    val hasKycKyxTemplate: Boolean? = null,
+    val hasKybKyxTemplate: Boolean? = null,
+    val isMoneyTransferPartner: Boolean? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -320,6 +484,7 @@ data class SubmerchantCreateRequest(
     val currencyId: String,
     val subMerchantExternalId: String? = null,
     val identityNumber: String? = null,
+    @param:JsonProperty("sub_merchant_type") @get:JsonProperty("sub_merchant_type")
     val submerchantType: String? = null,
     val taxNumber: String? = null,
     val subMerchantKey: String? = null,
@@ -344,6 +509,7 @@ data class SubmerchantUpdateRequest(
     val currencyId: String,
     val subMerchantExternalId: String? = null,
     val identityNumber: String? = null,
+    @param:JsonProperty("sub_merchant_type") @get:JsonProperty("sub_merchant_type")
     val submerchantType: String? = null,
     val taxNumber: String? = null,
     val subMerchantKey: String? = null,
@@ -369,6 +535,7 @@ data class Submerchant(
     val currencyId: String? = null,
     val subMerchantExternalId: String? = null,
     val identityNumber: String? = null,
+    @param:JsonProperty("sub_merchant_type") @get:JsonProperty("sub_merchant_type")
     val submerchantType: String? = null,
     val taxNumber: String? = null,
     val subMerchantKey: String? = null,
@@ -406,10 +573,15 @@ data class SubmerchantListResponse(
 data class SubmerchantMutationResponse(
     val code: Long? = null,
     val message: String? = null,
+    @Deprecated("Never returned by the server")
     val status: String? = null,
+    @Deprecated("Never returned by the server")
     val locale: String? = null,
+    @Deprecated("Never returned by the server")
     val systemTime: Long? = null,
+    @Deprecated("Never returned by the server")
     val conversationId: String? = null,
+    @Deprecated("Never returned by the server; use getSubmerchant")
     val subMerchantKey: String? = null,
 )
 
@@ -417,6 +589,12 @@ data class SubmerchantMutationResponse(
 data class SuborganizationListItem(
     val id: String? = null,
     val name: String? = null,
+    val address: String? = null,
+    val city: String? = null,
+    val country: String? = null,
+    val phone: String? = null,
+    val currency: String? = null,
+    val logo: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -488,8 +666,21 @@ data class VposCreateRequest(
     val acquirerId: String? = null,
     val cardSchemes: List<String> = emptyList(),
     val currencies: List<String> = emptyList(),
+    val failover: Boolean? = null,
+    val pfId: String? = null,
+    val redirectUri: String? = null,
+    val tls: Boolean? = null,
+    val tlsKey: String? = null,
+    val tlsCert: String? = null,
+    val rootCa: String? = null,
+    val mainInstallment: Boolean? = null,
+    val mainWithoutInstallment: Boolean? = null,
 )
 
+/**
+ * Replaces a VPOS configuration: fields left out are stored as empty or false (for example
+ * [failover] and [tls]). Read the VPOS with getVpos and send every field back.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class VposUpdateRequest(
     val name: String? = null,
@@ -522,6 +713,15 @@ data class VposUpdateRequest(
     val acquirerId: String? = null,
     val cardSchemes: List<String> = emptyList(),
     val currencies: List<String> = emptyList(),
+    val failover: Boolean? = null,
+    val pfId: String? = null,
+    val redirectUri: String? = null,
+    val tls: Boolean? = null,
+    val tlsKey: String? = null,
+    val tlsCert: String? = null,
+    val rootCa: String? = null,
+    val mainInstallment: Boolean? = null,
+    val mainWithoutInstallment: Boolean? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -558,6 +758,15 @@ data class Vpos(
     val acquirerId: String? = null,
     val cardSchemes: List<String> = emptyList(),
     val currencies: List<String> = emptyList(),
+    val failover: Boolean? = null,
+    val pfId: String? = null,
+    val redirectUri: String? = null,
+    val tls: Boolean? = null,
+    val tlsKey: String? = null,
+    val tlsCert: String? = null,
+    val rootCa: String? = null,
+    val mainInstallment: Boolean? = null,
+    val mainWithoutInstallment: Boolean? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -752,6 +961,9 @@ data class SubscriptionCreateRequest(
     val successUrl: String? = null,
     val title: String? = null,
     val user: SubscriptionUser = SubscriptionUser(),
+    /** day, week, month or year. */
+    val interval: String? = null,
+    val intervalCount: Int? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -781,6 +993,10 @@ data class SubscriptionDetail(
     val paymentStatus: String? = null,
     val period: Int? = null,
     val title: String? = null,
+    val cycle: Int? = null,
+    val cyclesCompleted: Int? = null,
+    val interval: String? = null,
+    val intervalCount: Int? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -802,6 +1018,11 @@ data class SubscriptionListItem(
     val period: Int? = null,
     val referenceId: String? = null,
     val title: String? = null,
+    val cycle: Int? = null,
+    val cyclesCompleted: Int? = null,
+    val interval: String? = null,
+    val intervalCount: Int? = null,
+    val nextPaymentDate: String? = null,
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

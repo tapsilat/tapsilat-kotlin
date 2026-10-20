@@ -16,6 +16,14 @@ class TapsilatConstantsTest {
     }
 
     @Test
+    fun `status names match case-insensitively`() {
+        assertEquals(23, TapsilatConstants.getOrderStatusByString("Partially Paid"))
+        assertEquals(23, TapsilatConstants.getOrderStatusByString("Partially paid"))
+        assertEquals(7, TapsilatConstants.getOrderStatusByString("waiting for payment"))
+        assertEquals("Card Tokenization", TapsilatConstants.ORDER_STATUS_NAMES[25])
+    }
+
+    @Test
     fun `unknown status name returns 0`() {
         assertEquals(0, TapsilatConstants.getOrderStatusByString("NonExistent"))
         assertEquals(0, TapsilatConstants.getOrderStatusByString(""))

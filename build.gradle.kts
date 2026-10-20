@@ -44,12 +44,12 @@ sourceSets {
 }
 
 dependencies {
-    implementation("com.squareup.okhttp3:okhttp:5.3.2")
+    implementation("com.squareup.okhttp3:okhttp:5.4.0")
     implementation("com.fasterxml.jackson.core:jackson-databind:2.21.2")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
 
     testImplementation(kotlin("test"))
-    testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.4.0")
 }
 
 tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {

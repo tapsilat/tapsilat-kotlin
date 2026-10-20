@@ -338,11 +338,80 @@ data class OrderResponse(
     val error: String? = null,
 )
 
+/**
+ * The response of GET /order/{reference_id}/status. The companion maps the status codes that
+ * callbacks and order details carry ([TapsilatConstants].ORDER_STATUS_*) to the names this
+ * endpoint returns, and groups them.
+ */
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class OrderStatus(
     val status: String? = null,
     val error: String? = null,
-)
+) {
+    companion object {
+        /** Statuses of an order whose payment was captured. */
+        @JvmField
+        val PAID_STATUSES: Set<Int> = setOf(
+            TapsilatConstants.ORDER_STATUS_PAID,
+            TapsilatConstants.ORDER_STATUS_COMPLETED,
+            TapsilatConstants.ORDER_STATUS_SUBMERCHANT_PAYMENT_APPROVED,
+        )
+
+        /** Statuses of an order that will not be paid. */
+        @JvmField
+        val FAILED_STATUSES: Set<Int> = setOf(
+            TapsilatConstants.ORDER_STATUS_CANCELLED,
+            TapsilatConstants.ORDER_STATUS_FRAUD,
+            TapsilatConstants.ORDER_STATUS_REJECTED,
+            TapsilatConstants.ORDER_STATUS_FAILURE,
+            TapsilatConstants.ORDER_STATUS_EXPIRED,
+            TapsilatConstants.ORDER_STATUS_TERMINATED,
+        )
+
+        /** Statuses of an order whose payment was refunded in full or in part. */
+        @JvmField
+        val REFUNDED_STATUSES: Set<Int> = setOf(
+            TapsilatConstants.ORDER_STATUS_REFUNDED,
+            TapsilatConstants.ORDER_STATUS_PARTIALLY_REFUNDED,
+        )
+
+        /**
+         * Returns the status code for a code (an integral number, as decoded JSON carries it), a
+         * numeric string such as order_lite callbacks send, or a status name such as "Paid"
+         * (case-insensitive), or null when the value is not a status.
+         */
+        @JvmStatic
+        fun code(status: Any?): Int? {
+            val code = when (status) {
+                is String -> {
+                    val trimmed = status.trim()
+                    if (trimmed.isNotEmpty() && trimmed.all { it in '0'..'9' }) {
+                        trimmed.toIntOrNull()
+                    } else {
+                        TapsilatConstants.getOrderStatusByString(trimmed).takeIf { it != 0 }
+                    }
+                }
+
+                is Number -> status.toString().toBigDecimalOrNull()?.let { runCatching { it.intValueExact() }.getOrNull() }
+                else -> null
+            }
+            return code?.takeIf { it in TapsilatConstants.ORDER_STATUS_NAMES }
+        }
+
+        /** Returns the status name, such as "Paid", or null when the value is not a status. */
+        @JvmStatic
+        fun name(status: Any?): String? = code(status)?.let { TapsilatConstants.ORDER_STATUS_NAMES[it] }
+
+        @JvmStatic
+        fun isPaid(status: Any?): Boolean = code(status) in PAID_STATUSES
+
+        @JvmStatic
+        fun isFailed(status: Any?): Boolean = code(status) in FAILED_STATUSES
+
+        @JvmStatic
+        fun isRefunded(status: Any?): Boolean = code(status) in REFUNDED_STATUSES
+    }
+}
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class RefundOrder(

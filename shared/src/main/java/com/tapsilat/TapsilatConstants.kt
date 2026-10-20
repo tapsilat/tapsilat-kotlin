@@ -49,37 +49,40 @@ object TapsilatConstants {
     const val SUBSCRIPTION_STATUS_FAILURE = "failure"
     const val SUBSCRIPTION_STATUS_PENDING = "pending"
 
-    private val STATUS_BY_NAME: Map<String, Int> = mapOf(
-        "Received" to ORDER_STATUS_RECEIVED,
-        "Unpaid" to ORDER_STATUS_UNPAID,
-        "Paid" to ORDER_STATUS_PAID,
-        "Processing" to ORDER_STATUS_PROCESSING,
-        "Shipped" to ORDER_STATUS_SHIPPED,
-        "On hold" to ORDER_STATUS_ON_HOLD,
-        "Waiting for payment" to ORDER_STATUS_PAYMENT,
-        "Cancelled" to ORDER_STATUS_CANCELLED,
-        "Completed" to ORDER_STATUS_COMPLETED,
-        "Refunded" to ORDER_STATUS_REFUNDED,
-        "Fraud" to ORDER_STATUS_FRAUD,
-        "Rejected" to ORDER_STATUS_REJECTED,
-        "Failure" to ORDER_STATUS_FAILURE,
-        "Retrying" to ORDER_STATUS_RETRYING,
-        "Partially refunded" to ORDER_STATUS_PARTIALLY_REFUNDED,
-        "Sub merchant payment approved" to ORDER_STATUS_SUBMERCHANT_PAYMENT_APPROVED,
-        "Sub merchant payment disapproved" to ORDER_STATUS_SUBMERCHANT_PAYMENT_DISAPPROVED,
-        "Sub merchant payment errored" to ORDER_STATUS_SUBMERCHANT_PAYMENT_ERRORED,
-        "Still has unpaid installments" to ORDER_STATUS_STILL_HAS_UNPAID_INSTALLMENTS,
-        "Still has unpaid terms" to ORDER_STATUS_STILL_HAS_UNPAID_TERMS,
-        "Expired" to ORDER_STATUS_EXPIRED,
-        "Still has unpaid sub merchant payments" to ORDER_STATUS_STILL_HAS_UNPAID_SUBMERCHANT_PAYMENTS,
-        "Partially paid" to ORDER_STATUS_PARTIALLY_PAID,
-        "Terminated" to ORDER_STATUS_TERMINATED,
-        "Card tokenization" to ORDER_STATUS_CARD_TOKENIZATION,
-        "Pre authorized" to ORDER_STATUS_PRE_AUTHORIZED,
-        "Disputed" to ORDER_STATUS_DISPUTED,
-        "Partially disputed" to ORDER_STATUS_PARTIALLY_DISPUTED,
-        "Suspect" to ORDER_STATUS_SUSPECT,
+    /** Order status names, as GET /order/{reference_id}/status returns them, by status code. */
+    val ORDER_STATUS_NAMES: Map<Int, String> = mapOf(
+        ORDER_STATUS_RECEIVED to "Received",
+        ORDER_STATUS_UNPAID to "Unpaid",
+        ORDER_STATUS_PAID to "Paid",
+        ORDER_STATUS_PROCESSING to "Processing",
+        ORDER_STATUS_SHIPPED to "Shipped",
+        ORDER_STATUS_ON_HOLD to "On hold",
+        ORDER_STATUS_PAYMENT to "Waiting for payment",
+        ORDER_STATUS_CANCELLED to "Cancelled",
+        ORDER_STATUS_COMPLETED to "Completed",
+        ORDER_STATUS_REFUNDED to "Refunded",
+        ORDER_STATUS_FRAUD to "Fraud",
+        ORDER_STATUS_REJECTED to "Rejected",
+        ORDER_STATUS_FAILURE to "Failure",
+        ORDER_STATUS_RETRYING to "Retrying",
+        ORDER_STATUS_PARTIALLY_REFUNDED to "Partially refunded",
+        ORDER_STATUS_SUBMERCHANT_PAYMENT_APPROVED to "Sub merchant payment approved",
+        ORDER_STATUS_SUBMERCHANT_PAYMENT_DISAPPROVED to "Sub merchant payment disapproved",
+        ORDER_STATUS_SUBMERCHANT_PAYMENT_ERRORED to "Sub merchant payment errored",
+        ORDER_STATUS_STILL_HAS_UNPAID_INSTALLMENTS to "Still has unpaid installments",
+        ORDER_STATUS_STILL_HAS_UNPAID_TERMS to "Still has unpaid terms",
+        ORDER_STATUS_EXPIRED to "Expired",
+        ORDER_STATUS_STILL_HAS_UNPAID_SUBMERCHANT_PAYMENTS to "Still has unpaid sub merchant payments",
+        ORDER_STATUS_PARTIALLY_PAID to "Partially Paid",
+        ORDER_STATUS_TERMINATED to "Terminated",
+        ORDER_STATUS_CARD_TOKENIZATION to "Card Tokenization",
+        ORDER_STATUS_PRE_AUTHORIZED to "Pre Authorized",
+        ORDER_STATUS_DISPUTED to "Disputed",
+        ORDER_STATUS_PARTIALLY_DISPUTED to "Partially disputed",
+        ORDER_STATUS_SUSPECT to "Suspect",
     )
 
-    fun getOrderStatusByString(status: String): Int = STATUS_BY_NAME[status] ?: 0
+    /** Returns the code for a status name such as "Paid" (case-insensitive), or 0 when the name is unknown. */
+    fun getOrderStatusByString(status: String): Int =
+        ORDER_STATUS_NAMES.entries.firstOrNull { it.value.equals(status, ignoreCase = true) }?.key ?: 0
 }

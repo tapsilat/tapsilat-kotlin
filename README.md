@@ -178,6 +178,58 @@ if (payout.eligibilityStatus == "eligible" && payout.releaseStatus == "awaiting_
 }
 ```
 
+### Webhooks
+
+#### Verify the Signature
+
+Tapsilat signs every callback it sends to your callback URLs, and to an order's `payment_success_url` and `payment_failure_url`, with the webhook secret from the panel's callback settings. The `Tapsilat-Signature` header looks like `t=1726480000,v1=5257a8…`: `v1` is the hex HMAC-SHA256 of the timestamp, a dot and the raw body.
+
+`TapsilatWebhook.verify` checks it in constant time and rejects a timestamp more than 5 minutes from the server clock, so a captured callback cannot be replayed. Pass the raw body (a `String` or `ByteArray`), not re-encoded JSON. For example, in a Spring controller:
+
+```kotlin
+import com.tapsilat.TapsilatWebhook
+import com.tapsilat.WebhookEvent
+
+@PostMapping("/tapsilat/callback")
+fun tapsilatCallback(
+    @RequestBody body: String,
+    @RequestHeader(TapsilatWebhook.SIGNATURE_HEADER, required = false) signature: String?,
+): ResponseEntity<Void> {
+    if (!TapsilatWebhook.verify(body, signature, "your_webhook_secret")) {
+        return ResponseEntity.badRequest().build()
+    }
+
+    val event = WebhookEvent.parse(body)
+    event.type           // "order_lite" (the default), "order", "order_payment_detail", ...
+    event.referenceId    // the order's reference ID, whatever the callback type
+    event.conversationId
+    event.status         // e.g. "Paid", when the callback type carries a status
+
+    if (event.isPaid) {
+        // fulfil the order
+    }
+    return ResponseEntity.ok().build()
+}
+```
+
+A different tolerance in seconds can be passed as `toleranceSeconds` (`0` disables the timestamp check). A bare hex HMAC of the body, with or without a `sha256=` prefix, is also accepted, as the other Tapsilat SDKs accept it.
+
+#### Order Statuses
+
+`OrderStatus` has helpers for the numeric status codes that callbacks carry (`TapsilatConstants.ORDER_STATUS_*`), the names `getOrderStatus` returns, and the groups most integrations need:
+
+```kotlin
+import com.tapsilat.OrderStatus
+
+val status = api.getOrderStatus(referenceId).status // e.g. "Waiting for payment"
+
+OrderStatus.isPaid(status)     // Paid, Completed, Sub merchant payment approved
+OrderStatus.isFailed(status)   // Cancelled, Fraud, Rejected, Failure, Expired, Terminated
+OrderStatus.isRefunded(status) // Refunded, Partially refunded
+OrderStatus.code(status)       // 7; also accepts "7" or 7
+OrderStatus.name(7)            // "Waiting for payment"
+```
+
 ### Placeholder Methods
 
 `CreditService.createCreditApplicationPlaceholder()` is a placeholder for a module planned later and throws `UnsupportedOperationException`.
@@ -286,6 +338,12 @@ if (payout.eligibilityStatus == "eligible" && payout.releaseStatus == "awaiting_
 - Payouts: `listMarketplacePayouts`, `getMarketplacePayout`, `approveMarketplacePayouts`
 - Policies: `list`/`get`/`create`/`update`/`delete` for `MarketplaceApprovalPolicy` and `MarketplaceReleasePolicy`, `getMarketplaceApprovalSettings`, `updateMarketplaceApprovalSettings`
 - Payout operations: `runMarketplacePayoutOperation`, `getMarketplacePayoutOperation`, `reconcileMarketplacePayoutOperation`, `retryMarketplacePayoutOperation`
+
+### Webhooks
+
+- `TapsilatWebhook.verify`
+- `WebhookEvent.parse`
+- `OrderStatus.code`, `name`, `isPaid`, `isFailed`, `isRefunded`
 
 ## Error Handling
 

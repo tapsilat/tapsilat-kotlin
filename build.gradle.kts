@@ -46,7 +46,7 @@ sourceSets {
 
 dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.4.0")
-    implementation("com.fasterxml.jackson.core:jackson-databind:2.21.2")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.22.4")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
 
     testImplementation(kotlin("test"))

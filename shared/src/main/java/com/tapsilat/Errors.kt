@@ -2,7 +2,7 @@ package com.tapsilat
 
 import com.fasterxml.jackson.databind.JsonNode
 
-class ApiError(
+class ApiError @JvmOverloads constructor(
     val statusCode: Int,
     val status: String,
     val code: String?,
@@ -10,20 +10,30 @@ class ApiError(
     val rawBody: String,
     /** Per-field validation messages, when the server returns an `errors` object. */
     val errors: Map<String, String> = emptyMap(),
+    /** True when the error object says the request can be retried, as Elements errors do. */
+    val retryable: Boolean = false,
 ) : RuntimeException(buildMessage(statusCode, status, code, messageText, rawBody)) {
     companion object {
         fun from(statusCode: Int, status: String, body: String, parsed: JsonNode?): ApiError {
-            val code = parsed?.get("code")?.takeUnless { it.isNull }?.asText()
-            val message = parsed?.get("message")?.takeUnless { it.isNull }?.asText()
-                ?: parsed?.get("error")?.takeUnless { it.isNull }?.asText()
-            val parsedStatus = parsed?.get("status")?.takeUnless { it.isNull }?.asText() ?: status
+            // Elements routes nest the error: {"error": {"code": "...", "message": "...", "retryable": true}}
+            val nested = parsed?.get("error")?.takeIf { it.isObject }
+            val code = parsed.text("code") ?: nested.text("code")
+            val message = parsed.text("message")
+                ?: nested.text("message")
+                ?: parsed.text("error")
+            val parsedStatus = parsed.text("status") ?: status
             val errors = parsed?.get("errors")
                 ?.takeIf { it.isObject }
                 ?.properties()
                 ?.associate { (field, value) -> field to value.asText() }
                 .orEmpty()
-            return ApiError(statusCode, parsedStatus, code, message, body, errors)
+            val retryable = nested?.get("retryable")?.takeIf { it.isBoolean }?.booleanValue() ?: false
+            return ApiError(statusCode, parsedStatus, code, message, body, errors, retryable)
         }
+
+        /** The field as text when it is a string, number or boolean; otherwise null. */
+        private fun JsonNode?.text(field: String): String? =
+            this?.get(field)?.takeIf { it.isValueNode && !it.isNull }?.asText()
 
         internal fun unexpectedResponse(statusCode: Int, status: String, contentType: String, body: String): ApiError =
             ApiError(

@@ -16,6 +16,7 @@ This repository uses a single-module layout so feature domains can share one API
 - `order/`: order domain DTOs and services
 - `checkout/`: checkout service module (placeholder methods included)
 - `credit/`: credit service module (placeholder methods included)
+- `elements/`: Tapsilat Elements sessions for the native card sheet
 
 Service split convention:
 
@@ -25,6 +26,7 @@ Service split convention:
 - `SubmerchantService`: submerchant/suborganization APIs
 - `VposService`: VPOS and VPOS-submerchant APIs
 - `SubscriptionService`: subscription APIs
+- `ElementsService`: Tapsilat Elements session APIs
 - `CheckoutService` / `CreditService`: placeholders for upcoming features
 
 ## Installation
@@ -177,6 +179,34 @@ if (payout.eligibilityStatus == "eligible" && payout.releaseStatus == "awaiting_
     api.marketplace.approveMarketplacePayouts(MarketplacePayoutApproval(ids = listOf(payoutId)))
 }
 ```
+
+### Tapsilat Elements Sessions
+
+Tapsilat Elements is the native Android and iOS card sheet. Your backend creates a session with its secret key and passes only the session's `clientSecret` to the app, which opens the sheet with it. Card data goes from the sheet to Tapsilat encrypted and never reaches your backend.
+
+```kotlin
+import com.tapsilat.ElementsSession
+import com.tapsilat.ElementsSessionCreateRequest
+
+val session = api.createElementsSession(
+    ElementsSessionCreateRequest(
+        purpose = ElementsSession.PURPOSE_PAY,
+        orderReferenceId = orderReferenceId,
+        saveCard = true,
+    )
+)
+// Return session.id and session.clientSecret to your app. Do not log or store the secret.
+
+// Later, read the outcome on your backend instead of trusting the app:
+val outcome = api.getElementsSession(sessionId)
+if (outcome.status == ElementsSession.STATUS_SUCCEEDED) {
+    // fulfil the order; outcome.card holds brand, last4 and expiry
+}
+```
+
+A `pay` session needs `orderReferenceId`. A `tokenize` session saves a card for `userId`, with `mode` set to `ElementsSession.MODE_SECURE` (3D Secure), `MODE_HALF_SECURE` or `MODE_NON_SECURE`. `cancelElementsSession(id)` cancels a session that is still waiting for a card; a session that is confirming or has completed comes back unchanged.
+
+Only `createElementsSession` returns the client secret. `ElementsSessionWithSecret.toString()` prints it as `[redacted]`, and JSON serialization keeps it, so you can still send it to the app. Status, purpose and card brand are plain strings, with the known values as `ElementsSession.STATUS_*`, `PURPOSE_*` and `ElementsCardSummary.BRAND_*`, so a value added later still decodes. Elements errors carry a stable `code` (for example `elements_not_enabled`, `session_not_found`) and `retryable` on `ApiError`.
 
 ### Webhooks
 
@@ -332,6 +362,12 @@ OrderStatus.name(7)            // "Waiting for payment"
 - `listSavedCards`
 - `deleteSavedCard`
 
+### Elements (`api.elements`)
+
+- `createElementsSession`
+- `getElementsSession`
+- `cancelElementsSession`
+
 ### Marketplace (`api.marketplace`)
 
 - Sellers: `listMarketplaceSubmerchants`, `getMarketplaceSubmerchant`, `updateMarketplaceSubmerchant`, `getMarketplaceSellerContracts`, `getMarketplaceSellerAccounts`, `runMarketplaceSellerAccountAction`
@@ -349,7 +385,7 @@ OrderStatus.name(7)            // "Waiting for payment"
 
 The SDK throws:
 
-- `ApiError` for non-2xx API responses, carrying `statusCode`, the body `status`, `code`, `messageText`, per-field `errors` and the `rawBody`. Most "not found" errors arrive as HTTP 400 and rejected state changes as HTTP 424. A successful status with an HTML body, which a deployment serving the panel UI returns for unknown routes, also throws `ApiError`.
+- `ApiError` for non-2xx API responses, carrying `statusCode`, the body `status`, `code`, `messageText`, per-field `errors`, `retryable` and the `rawBody`. Elements routes nest the error as `{"error": {"code": "...", "message": "...", "retryable": true}}`; `code`, `messageText` and `retryable` are read from that object. Most "not found" errors arrive as HTTP 400 and rejected state changes as HTTP 424. A successful status with an HTML body, which a deployment serving the panel UI returns for unknown routes, also throws `ApiError`.
 - `ValidationError` for local validation failures (phone, installments, currency references)
 
 Example:

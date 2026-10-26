@@ -59,6 +59,10 @@ internal class SharedApiClient(
     fun <T> post(path: String, payload: Any?, responseType: Class<T>, version: String? = null): T =
         request(path, "POST", payload, version = version) { mapper.readValue(it, responseType) }
 
+    /** Sends a POST with an empty body and no Content-Type, for routes that take no request body. */
+    fun <T> postWithoutBody(path: String, responseType: Class<T>): T =
+        request(path, "POST", NoBody) { mapper.readValue(it, responseType) }
+
     fun <T> put(path: String, payload: Any, responseType: Class<T>): T =
         request(path, "PUT", payload) { mapper.readValue(it, responseType) }
 
@@ -125,9 +129,11 @@ internal class SharedApiClient(
         val urlBuilder = "$base$path".toHttpUrl().newBuilder()
         query.forEach { (k, v) -> if (v.isNotBlank()) urlBuilder.addQueryParameter(k, v) }
 
-        val jsonBody: RequestBody = payload
-            ?.let { mapper.writeValueAsString(it).toRequestBody(JSON_MEDIA_TYPE) }
-            ?: EMPTY_JSON_BODY
+        val jsonBody: RequestBody = when (payload) {
+            NoBody -> EMPTY_BODY
+            null -> EMPTY_JSON_BODY
+            else -> mapper.writeValueAsString(payload).toRequestBody(JSON_MEDIA_TYPE)
+        }
 
         return Request.Builder()
             .url(urlBuilder.build())
@@ -145,9 +151,13 @@ internal class SharedApiClient(
             .build()
     }
 
+    /** Marks a request that is sent with an empty body instead of JSON. */
+    private object NoBody
+
     companion object {
         private val JSON_MEDIA_TYPE = "application/json".toMediaType()
         private val EMPTY_JSON_BODY = "{}".toRequestBody(JSON_MEDIA_TYPE)
+        private val EMPTY_BODY = ByteArray(0).toRequestBody(null)
         private val MAP_TYPE = object : TypeReference<Map<String, Any?>>() {}
         private val LIST_TYPE = object : TypeReference<List<Map<String, Any?>>>() {}
 

@@ -21,6 +21,7 @@ class TapsilatApi private constructor(
     val credit = CreditService(client)
     val tokenization = TokenizationService(client)
     val marketplace = MarketplaceService(client, currencyResolver)
+    val elements = ElementsService(client)
 
     companion object {
         @JvmOverloads
@@ -234,5 +235,14 @@ class TapsilatApi private constructor(
     fun listSavedCards(page: Int, perPage: Int): ListSavedCardsResponse = tokenization.listSavedCards(page, perPage)
 
     fun deleteSavedCard(id: String): DeleteSavedCardResponse = tokenization.deleteSavedCard(id)
+
+    // ── Elements ──────────────────────────────────────────────────────────────
+
+    fun createElementsSession(payload: ElementsSessionCreateRequest): ElementsSessionWithSecret =
+        elements.createElementsSession(payload)
+
+    fun getElementsSession(id: String): ElementsSession = elements.getElementsSession(id)
+
+    fun cancelElementsSession(id: String): ElementsSession = elements.cancelElementsSession(id)
 }
 

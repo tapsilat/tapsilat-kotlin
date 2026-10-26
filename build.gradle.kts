@@ -34,12 +34,13 @@ sourceSets {
                 "credit/src/main/java",
                 "card/src/main/java",
                 "wallet/src/main/java",
+                "elements/src/main/java",
             ),
         )
         resources.setSrcDirs(listOf("shared/src/main/resources"))
     }
     named("test") {
-        java.setSrcDirs(listOf("shared/src/test/java", "order/src/test/java", "checkout/src/test/java", "credit/src/test/java", "card/src/test/java", "wallet/src/test/java"))
+        java.setSrcDirs(listOf("shared/src/test/java", "order/src/test/java", "checkout/src/test/java", "credit/src/test/java", "card/src/test/java", "wallet/src/test/java", "elements/src/test/java"))
     }
 }
 

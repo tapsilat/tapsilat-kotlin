@@ -1,8 +1,10 @@
 package com.tapsilat
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -44,6 +46,37 @@ class ApiErrorTest {
         val error = ApiError.from(400, "Bad Request", "raw", json)
 
         assertEquals("fallback error", error.messageText)
+        assertFalse(error.retryable)
+    }
+
+    @Test
+    fun `from reads code, message and retryable from a nested error object`() {
+        val body = """{"error":{"code":"unavailable","message":"try again","retryable":true}}"""
+        val error = ApiError.from(503, "Service Unavailable", body, ObjectMapper().readTree(body))
+
+        assertEquals("unavailable", error.code)
+        assertEquals("try again", error.messageText)
+        assertTrue(error.retryable)
+        assertEquals("API request failed with status 503 (Service Unavailable): [unavailable] try again", error.message)
+    }
+
+    @Test
+    fun `from treats an absent nested retryable as false`() {
+        val body = """{"error":{"code":"session_not_found","message":"session not found"}}"""
+        val error = ApiError.from(404, "Not Found", body, ObjectMapper().readTree(body))
+
+        assertEquals("session_not_found", error.code)
+        assertEquals("session not found", error.messageText)
+        assertFalse(error.retryable)
+    }
+
+    @Test
+    fun `from prefers top-level code and message over a nested error object`() {
+        val body = """{"code":"TOP","message":"top message","error":{"code":"nested","message":"nested message"}}"""
+        val error = ApiError.from(400, "Bad Request", body, ObjectMapper().readTree(body))
+
+        assertEquals("TOP", error.code)
+        assertEquals("top message", error.messageText)
     }
 
     @Test
